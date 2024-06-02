@@ -68,7 +68,7 @@ zip: build
 	/usr/bin/lipo -create -output build/darwin/${APP_NAME}.ext build/darwin/${APP_NAME}.amd64.ext build/darwin/${APP_NAME}.arm64.ext
 	/bin/rm build/darwin/${APP_NAME}.amd64.ext
 	/bin/rm build/darwin/${APP_NAME}.arm64.ext
-	@sudo codesign --timestamp --force --deep -s "${DEV_APP_CERT}" build/darwin/${APP_NAME}.ext
+	# @sudo codesign --timestamp --force --deep -s "${DEV_APP_CERT}" build/darwin/${APP_NAME}.ext
 	@sudo chown root:wheel build/darwin/${APP_NAME}.ext
 	@sudo chmod 755 build/darwin/${APP_NAME}.ext
 	mv build macadmins_extension

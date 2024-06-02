@@ -1,9 +1,17 @@
-name: Build MacAdmins OSQuery Extension (Auto)
+name: Release MacAdmins OSQuery Extension
+
+env:
+  GO_VERSION: 1.17
 
 on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to use for the build (format: vX.X.X)'
+        required: true
 
 jobs:
   build:
@@ -20,24 +28,45 @@ jobs:
       with:
         fetch-depth: 0
 
-    # - name: Install Apple Xcode certificates
-    #   uses: apple-actions/import-codesign-certs@8f3fb608891dd2244cdab3d69cd68c0d37a7fe93 # v2.0.0
-    #   with:
-    #     keychain-password: ${{ github.run_id }}
-    #     p12-file-base64: ${{ secrets.APP_CERTIFICATES_P12_MAOS }}
-    #     p12-password: ${{ secrets.APP_CERTIFICATES_P12_PASSWORD_MAOS }}
+    - name: Install Apple Xcode certificates
+      uses: apple-actions/import-codesign-certs@8f3fb608891dd2244cdab3d69cd68c0d37a7fe93 # v2.0.0
+      with:
+        keychain-password: ${{ github.run_id }}
+        p12-file-base64: ${{ secrets.APP_CERTIFICATES_P12_MAOS }}
+        p12-password: ${{ secrets.APP_CERTIFICATES_P12_PASSWORD_MAOS }}
 
-    # - name: Install Apple Installer certificates
-    #   uses: apple-actions/import-codesign-certs@8f3fb608891dd2244cdab3d69cd68c0d37a7fe93 # v2.0.0
-    #   with:
-    #     create-keychain: false # do not create a new keychain for this value
-    #     keychain-password: ${{ github.run_id }}
-    #     p12-file-base64: ${{ secrets.PKG_CERTIFICATES_P12_MAOS }}
-    #     p12-password: ${{ secrets.PKG_CERTIFICATES_P12_PASSWORD_MAOS }}
+    - name: Install Apple Installer certificates
+      uses: apple-actions/import-codesign-certs@8f3fb608891dd2244cdab3d69cd68c0d37a7fe93 # v2.0.0
+      with:
+        create-keychain: false # do not create a new keychain for this value
+        keychain-password: ${{ github.run_id }}
+        p12-file-base64: ${{ secrets.PKG_CERTIFICATES_P12_MAOS }}
+        p12-password: ${{ secrets.PKG_CERTIFICATES_P12_PASSWORD_MAOS }}
 
     - name: Get version from tag
       id: get_version
+      if: startsWith(github.ref, 'refs/tags/')
       run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+    - name: Set version for manual run
+      if: github.event_name == 'workflow_dispatch'
+      run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+
+    - name: Validate version format
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        if [[ ! "${{ github.event.inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Invalid version format. Please use the format vX.X.X."
+          exit 1
+        fi
+
+    - name: Create and push tag
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git tag ${{ github.event.inputs.version }}
+        git push origin ${{ github.event.inputs.version }}
 
     - name: Run makefile
       run: make zip
@@ -55,12 +84,12 @@ jobs:
       id: create_release
       uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
       with:
-        name: v${{ env.VERSION }}
-        tag_name: v${{ env.VERSION }}
+        name: ${{ env.VERSION }}
+        tag_name: ${{ env.VERSION }}
         draft: false
         prerelease: false
         token: ${{ secrets.GITHUB_TOKEN }}
         body: |
-            # What's Changed
-            ${{ steps.changelog.outputs.changelog }}
-        files: ${{github.workspace}}/*.zip
+          # What's Changed
+          ${{ steps.changelog.outputs.changelog }}
+        files: ${{ github.workspace }}/*.zip
