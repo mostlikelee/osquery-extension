@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to use for the build (format: vX.X.X)'
+        description: 'Version to use for the build (format: X.X.X)'
         required: true
 
 jobs:
@@ -55,8 +55,8 @@ jobs:
     - name: Validate version format
       if: github.event_name == 'workflow_dispatch'
       run: |
-        if [[ ! "${{ github.event.inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          echo "Invalid version format. Please use the format vX.X.X."
+        if [[ ! "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Invalid version format. Please use the format X.X.X."
           exit 1
         fi
 
@@ -65,20 +65,20 @@ jobs:
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git tag ${{ github.event.inputs.version }}
-        git push origin ${{ github.event.inputs.version }}
+        git tag v${{ github.event.inputs.version }}
+        git push origin v${{ github.event.inputs.version }}
 
     - name: Run makefile
       run: make zip
       env:
         VERSION: ${{ env.VERSION }}
 
-    - name: Generate changelog
-      id: changelog
-      uses: metcalfc/changelog-generator@v4.3.1
-      with:
-        myToken: ${{ secrets.GITHUB_TOKEN }}
-        reverse: 'true'
+    # - name: Generate changelog
+    #   id: changelog
+    #   uses: metcalfc/changelog-generator@afdcb9470aebdb2252c0c95a1c130723c9e21f3a # v4.1
+    #   with:
+    #     myToken: ${{ secrets.GITHUB_TOKEN }}
+    #     reverse: 'true'
 
     - name: Create Release
       id: create_release
@@ -89,7 +89,7 @@ jobs:
         draft: false
         prerelease: false
         token: ${{ secrets.GITHUB_TOKEN }}
-        body: |
-          # What's Changed
-          ${{ steps.changelog.outputs.changelog }}
+        # body: |
+        #   # What's Changed
+        #   ${{ steps.changelog.outputs.changelog }}
         files: ${{ github.workspace }}/*.zip
