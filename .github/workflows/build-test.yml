@@ -89,7 +89,6 @@ jobs:
         draft: false
         prerelease: false
         token: ${{ secrets.GITHUB_TOKEN }}
-        # body: |
-        #   # What's Changed
-        #   ${{ steps.changelog.outputs.changelog }}
+        body: |
+          # What's Changed
         files: ${{ github.workspace }}/*.zip
